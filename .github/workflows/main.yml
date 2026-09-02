@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Download PDF
         run: |
-          curl -L --fail "${{ inputs.pdf_url }}" -o input.pdf
+          curl -k -L --fail "${{ inputs.pdf_url }}" -o input.pdf
 
       - name: Install tools
         run: |

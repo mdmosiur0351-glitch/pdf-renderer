@@ -1,0 +1,58 @@
+name: PDF to Image Only PDF
+
+on:
+  workflow_dispatch:
+    inputs:
+      pdf_url:
+        description: "PDF URL"
+        required: true
+        type: string
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download PDF
+        run: |
+          curl -L --fail "${{ inputs.pdf_url }}" -o input.pdf
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y poppler-utils
+
+      - name: Convert PDF pages to JPG
+        run: |
+          mkdir -p pages
+          pdftoppm -jpeg -r 200 input.pdf pages/page
+
+      - name: Create image-only PDF
+        run: |
+          python -m pip install Pillow
+          python <<'PY'
+          from PIL import Image
+          import glob
+
+          files = sorted(glob.glob("pages/*.jpg"))
+
+          images = []
+          for f in files:
+              img = Image.open(f).convert("RGB")
+              images.append(img)
+
+          if not images:
+              raise Exception("No JPG pages were created.")
+
+          images[0].save(
+              "output-image-only.pdf",
+              save_all=True,
+              append_images=images[1:]
+          )
+          PY
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-only-pdf
+          path: output-image-only.pdf
